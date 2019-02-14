@@ -30,7 +30,7 @@ public class User implements IUser {
         this.password = password;
     }
 
-//    public void addWallet(Wallet wallet) {
+//    public void addWallet(BitcoinWallet wallet) {
 //        wallets.add(wallet);
 //    }
 
@@ -87,7 +87,7 @@ public class User implements IUser {
     }
 
 //    public void viewWalletsBalances() {
-//        for(Wallet wallet : wallets) {
+//        for(BitcoinWallet wallet : wallets) {
 //            LOG.info("Balance: " + wallet.getBalance().toString());
 //        }
 //    }

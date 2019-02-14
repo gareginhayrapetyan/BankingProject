@@ -17,7 +17,7 @@ public interface IUser {
 
     String getEmail();
 
-    //    void addWallet(Wallet wallet);
+    //    void addWallet(BitcoinWallet wallet);
     void setWallet(Wallet wallet);
 
     void setAddress(Address address);
