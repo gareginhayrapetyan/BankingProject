@@ -26,7 +26,7 @@ class UserManagerTest {
     @BeforeAll
     static void initialize() {
         ApplicationContext context = new AnnotationConfigApplicationContext(BankingContext.class);
-        userManager = context.getBean(UserManager.class);
+        userManager = context.getBean(IUserManager.class);
     }
 
     @Test

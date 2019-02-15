@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
 import spring.entities.BitcoinWallet;
 import spring.entities.User;
 import spring.interfaces.IUserManager;
@@ -25,6 +26,7 @@ import javax.transaction.Transactional;
 import java.math.BigDecimal;
 import java.util.Optional;
 
+@Service
 public class UserManager implements IUserManager {
     private static final Logger LOG = LoggerFactory.getLogger(UserManager.class);
     @Autowired
@@ -43,7 +45,6 @@ public class UserManager implements IUserManager {
     }
 
 
-    @Transactional
     @Override
     public Pair<User, BankMessage> verifyRegistration(BankMessage msg) {
         if (msg.hasRegistration()) {
