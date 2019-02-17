@@ -59,6 +59,7 @@ public class UserManager implements IUserManager {
             String lastName = msg.getRegistration().getLastName();
             String userName = msg.getRegistration().getUsername();
             String email = msg.getRegistration().getEmail();
+            boolean isUsing2FA = msg.getRegistration().getIsUsing2FA();
 
 //            String password = msg.getRegistration().getPassword();
             if (!Util.isValidUserName(userName)) {
@@ -78,7 +79,7 @@ public class UserManager implements IUserManager {
                     LOG.error("failure while sending email");
                     return failureMessage("Failed");
                 } else {
-                    User newUser = new User(firsName, lastName, userName, email, passwordEncoder.encode(String.valueOf(oneTimePassword)), true);
+                    User newUser = new User(firsName, lastName, userName, email, passwordEncoder.encode(String.valueOf(oneTimePassword)), isUsing2FA);
                     Wallet newUsersWallet = createNewWalletForUser(newUser);
 
                     userRepository.save(newUser);

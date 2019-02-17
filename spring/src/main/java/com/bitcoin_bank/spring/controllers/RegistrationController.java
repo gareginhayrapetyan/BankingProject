@@ -32,6 +32,7 @@ public class RegistrationController {
                         .setLastName(lastName)
                         .setUsername(username)
                         .setEmail(email)
+                        .setIsUsing2FA(true)
                         .build())
                 .build();
 
