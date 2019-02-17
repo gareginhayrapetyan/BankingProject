@@ -2,10 +2,16 @@ package com.bitcoin_bank.spring.service;
 
 import com.bitcoin_bank.spring.entities.User;
 import com.bitcoin_bank.spring.entities.Wallet;
+import com.bitcoin_bank.spring.exception.UserNotFoundException;
 import com.bitcoin_bank.spring.interfaces.IUserManager;
 import com.bitcoin_bank.spring.repositories.UserRepository;
 import com.bitcoin_bank.spring.repositories.WalletRepository;
 import com.bitcoin_bank.util.Util;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.WriterException;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +23,9 @@ import javax.transaction.Transactional;
 
 import aca.proto.BankMessage;
 
+import java.io.IOException;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import java.util.Optional;
 
 
@@ -50,8 +59,8 @@ public class UserManager implements IUserManager {
             String lastName = msg.getRegistration().getLastName();
             String userName = msg.getRegistration().getUsername();
             String email = msg.getRegistration().getEmail();
-//            String password = msg.getRegistration().getPassword();
 
+//            String password = msg.getRegistration().getPassword();
             if (!Util.isValidUserName(userName)) {
                 return failureMessage("Invalid username");
             } else if (!Util.isValidEmail(email)) {
@@ -69,7 +78,7 @@ public class UserManager implements IUserManager {
                     LOG.error("failure while sending email");
                     return failureMessage("Failed");
                 } else {
-                    User newUser = new User(firsName, lastName, userName, email, passwordEncoder.encode(String.valueOf(oneTimePassword)));
+                    User newUser = new User(firsName, lastName, userName, email, passwordEncoder.encode(String.valueOf(oneTimePassword)), true);
                     Wallet newUsersWallet = createNewWalletForUser(newUser);
 
                     userRepository.save(newUser);
@@ -91,15 +100,19 @@ public class UserManager implements IUserManager {
     public BankMessage verifyUserLogin(BankMessage msg) {
         if (msg.hasLogin()) {
             String username = msg.getLogin().getUsername();
-            String password = msg.getLogin().getPassword();
 
-            if (userRepository.findByUserNameAndPassword(username, password).isPresent()) {
-                BankMessage confirmation = BankMessage.newBuilder()
-                        .setConfirmation(BankMessage.Confirmation.newBuilder().setMessage("Successful login").build())
-                        .build();
-                return confirmation;
-            } else {
-                return failureMessage("Check username and password.");
+            try {
+                User user = getUser(username);
+                if (passwordEncoder.matches(msg.getLogin().getPassword(), user.getPassword())) {
+                    BankMessage confirmation = BankMessage.newBuilder()
+                            .setConfirmation(BankMessage.Confirmation.newBuilder().setMessage("Successful login").build())
+                            .build();
+                    return confirmation;
+                } else {
+                    return failureMessage("Invalid password.");
+                }
+            } catch (UserNotFoundException e) {
+                return failureMessage("Invalid username");
             }
         } else {
             return failureMessage("Incorrect message type");
@@ -112,14 +125,14 @@ public class UserManager implements IUserManager {
 
 
     @Transactional
-    public User getUser(String username) {
+    public User getUser(String username) throws UserNotFoundException {
         Optional<User> user = userRepository.findByUserName(username);
 
         if (user.isPresent()) {
             return user.get();
         } else {
             LOG.error("Not found by username : " + username);
-            return null;
+            throw new UserNotFoundException("User not found username: " + username);
         }
     }
 
@@ -127,6 +140,15 @@ public class UserManager implements IUserManager {
         return BankMessage.newBuilder()
                 .setFailure(BankMessage.Failure.newBuilder().setMessage(msg).build())
                 .build();
+    }
+
+    void generateQRCodeImage(String text, int width, int height, String filePath)
+            throws WriterException, IOException {
+        QRCodeWriter qrCodeWriter = new QRCodeWriter();
+        BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, width, height);
+
+        Path path = FileSystems.getDefault().getPath(filePath);
+        MatrixToImageWriter.writeToPath(bitMatrix, "PNG", path);
     }
 
 }

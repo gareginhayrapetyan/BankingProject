@@ -17,6 +17,7 @@ message BankMessage {
         required string lastName = 2;
         required string username = 3;
         required string email = 4;
+        required bool isUsing2FA = 5;
     }
 
     message Login {

@@ -16,11 +16,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @Controller
 @RequestMapping(path = "/")
 public class RegistrationController {
-    private static final Logger LOG = LoggerFactory.getLogger(RegistrationController.class);
-
-    @Autowired
-    private UserRepository userRepository;
-
     @Autowired
     IUserManager userManager;
 

@@ -1,6 +1,8 @@
 package com.bitcoin_bank.spring.entities;
 
 
+import org.jboss.aerogear.security.otp.api.Base32;
+
 import javax.persistence.*;
 
 @Entity
@@ -24,19 +26,25 @@ public class User {
 
     private String currentAddress;
 
+    private String secret;
+    private boolean isUsing2FA;
+
 //    @OneToMany(mappedBy = "owner")
-//    private Set<BitcoinWallet> wallets;
+//    private Set<Wallet> wallets;
 
     public User() {
         super();
+        this.secret = Base32.random();
     }
 
-    public User(String firstName, String lastName, String userName, String email, String password) {
+    public User(String firstName, String lastName, String userName, String email, String password, boolean isUsing2FA) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.userName = userName;
         this.email = email;
         this.password = password;
+        this.isUsing2FA = isUsing2FA;
+        this.secret = Base32.random();
     }
 
     public Long getId() {
@@ -94,6 +102,22 @@ public class User {
 
     public String getCurrentAddress() {
         return this.currentAddress;
+    }
+
+    public boolean isUsing2FA() {
+        return isUsing2FA;
+    }
+
+    public void setUsing2FA(boolean isUsing2FA) {
+        this.isUsing2FA = isUsing2FA;
+    }
+
+    public String getSecret() {
+        return secret;
+    }
+
+    public void setSecret(String secret) {
+        this.secret = secret;
     }
 
 
