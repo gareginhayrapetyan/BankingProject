@@ -4,6 +4,7 @@ package com.bitcoin_bank.spring.entities;
 import org.jboss.aerogear.security.otp.api.Base32;
 
 import javax.persistence.*;
+import java.util.Set;
 
 @Entity
 public class User {
@@ -29,8 +30,8 @@ public class User {
     private String secret;
     private boolean isUsing2FA;
 
-//    @OneToMany(mappedBy = "owner")
-//    private Set<Wallet> wallets;
+    @OneToMany(mappedBy = "owner")
+    private Set<Wallet> wallets;
 
     public User() {
         super();
@@ -118,6 +119,10 @@ public class User {
 
     public void setSecret(String secret) {
         this.secret = secret;
+    }
+
+    public Set<Wallet> getWallets() {
+        return wallets;
     }
 
 

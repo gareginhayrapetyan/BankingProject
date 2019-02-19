@@ -12,6 +12,11 @@ import com.google.zxing.WriterException;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
+import io.block.api.BlockIO;
+import io.block.api.model.AddressBalances;
+import io.block.api.model.AddressByLabel;
+import io.block.api.model.NewAddress;
+import io.block.api.utils.BlockIOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,10 +28,15 @@ import javax.transaction.Transactional;
 
 import aca.proto.BankMessage;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.Properties;
 
 
 @Service
@@ -45,10 +55,19 @@ public class UserManager implements IUserManager {
     OtpService otpService;
 
     private PasswordEncoder passwordEncoder;
+    private BlockIO blockIO;
 
 
     public UserManager() {
         this.passwordEncoder = new BCryptPasswordEncoder();
+        Properties properties = new Properties();
+        try {
+            InputStream inputStream = new FileInputStream("C:\\Users\\Venera\\IdeaProjects\\BankingProjectV1\\spring\\src\\main\\resources\\application.properties");
+            properties.load(inputStream);
+            this.blockIO = new BlockIO(properties.getProperty("api-key"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 
@@ -80,10 +99,7 @@ public class UserManager implements IUserManager {
                     return failureMessage("Failed");
                 } else {
                     User newUser = new User(firsName, lastName, userName, email, passwordEncoder.encode(String.valueOf(oneTimePassword)), isUsing2FA);
-                    Wallet newUsersWallet = createNewWalletForUser(newUser);
-
                     userRepository.save(newUser);
-//                    walletRepository.save(newUsersWallet);
 
                     BankMessage confirmation = BankMessage.newBuilder()
                             .setConfirmation(BankMessage.Confirmation.newBuilder().setMessage("Successful registration").build())
@@ -120,17 +136,27 @@ public class UserManager implements IUserManager {
         }
     }
 
-    public Wallet createNewWalletForUser(User user) {
-        return null;//todo
-    }
-
-
     @Transactional
     public User getUser(String username) throws UserNotFoundException {
         Optional<User> user = userRepository.findByUserName(username);
 
         if (user.isPresent()) {
             return user.get();
+        } else {
+            LOG.error("Not found by username : " + username);
+            throw new UserNotFoundException("User not found username: " + username);
+        }
+    }
+
+    public User validateUser(String username, String password) throws UserNotFoundException {
+        Optional<User> user = userRepository.findByUserName(username);
+        if (user.isPresent()) {
+            if (passwordEncoder.matches(password, user.get().getPassword())) {
+                return user.get();
+            } else {
+                LOG.error("Invalid password");
+                throw new UserNotFoundException("Invalid password");
+            }
         } else {
             LOG.error("Not found by username : " + username);
             throw new UserNotFoundException("User not found username: " + username);
@@ -150,6 +176,16 @@ public class UserManager implements IUserManager {
 
         Path path = FileSystems.getDefault().getPath(filePath);
         MatrixToImageWriter.writeToPath(bitMatrix, "PNG", path);
+    }
+
+    public void generateNewWalletAddressForUser(User user, String label) throws BlockIOException {
+//        NewAddress address = blockIO.getNewAddress(label);
+        AddressByLabel address = blockIO.getAddressByLabel(label);
+//        Wallet wallet = new Wallet();
+//        wallet.setCurrentAddress(address.address);
+//        wallet.setCurrentBalance(new BigDecimal(0));
+//        wallet.setOwner(user);
+//        walletRepository.save(wallet);
     }
 
 }

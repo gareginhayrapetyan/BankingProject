@@ -12,7 +12,7 @@ public class Wallet {
     private Long id;
 
     @Column(unique = true, nullable = false)
-    private String currentAddress;
+    private String address;
 
     private BigDecimal currentBalance;
 
@@ -25,7 +25,7 @@ public class Wallet {
     }
 
     public Wallet(String currentAddress, BigDecimal currentBalance) {
-        this.currentAddress = currentAddress;
+        this.address = currentAddress;
         this.currentBalance = currentBalance;
     }
 
@@ -38,11 +38,11 @@ public class Wallet {
     }
 
     public String getCurrentAddress() {
-        return this.currentAddress;
+        return this.address;
     }
 
     public void setCurrentAddress(String currentAddress) {
-        this.currentAddress = currentAddress;
+        this.address = currentAddress;
     }
 
     public BigDecimal getCurrentBalance() {
