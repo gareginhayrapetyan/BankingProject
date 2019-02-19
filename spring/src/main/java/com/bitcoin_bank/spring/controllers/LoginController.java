@@ -30,9 +30,9 @@ public class LoginController {
 
         BankMessage response = userManager.verifyUserLogin(loginMsg);
         if (response.hasConfirmation()) {
-            return "Successful login.";
+            return response.getConfirmation().getMessage();
         } else {
-            return "Login failed.";
+            return response.getFailure().getMessage();
         }
     }
 }

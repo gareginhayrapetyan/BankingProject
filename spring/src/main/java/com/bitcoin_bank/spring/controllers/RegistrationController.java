@@ -38,9 +38,9 @@ public class RegistrationController {
 
         BankMessage response = userManager.verifyRegistration(registrationMsg);
         if (response.hasConfirmation()) {
-            return "Successful registration.";
+            return response.getConfirmation().getMessage();
         } else {
-            return "Registration failed.";
+            return response.getFailure().getMessage();
         }
     }
 
