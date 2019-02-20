@@ -3,6 +3,7 @@ package com.bitcoin_bank.spring.service;
 import com.bitcoin_bank.spring.entities.User;
 import com.bitcoin_bank.spring.entities.Wallet;
 import com.bitcoin_bank.spring.exception.UserNotFoundException;
+import com.bitcoin_bank.spring.exception.WalletNotFoundException;
 import com.bitcoin_bank.spring.interfaces.IUserManager;
 import com.bitcoin_bank.spring.repositories.UserRepository;
 import com.bitcoin_bank.spring.repositories.WalletRepository;
@@ -12,6 +13,7 @@ import com.google.zxing.WriterException;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
+import com.mysql.cj.exceptions.UnableToConnectException;
 import io.block.api.BlockIO;
 import io.block.api.model.AddressBalances;
 import io.block.api.model.AddressByLabel;
@@ -82,13 +84,13 @@ public class UserManager implements IUserManager {
 
 //            String password = msg.getRegistration().getPassword();
             if (!Util.isValidUserName(userName)) {
-                return failureMessage("Invalid username");
+                return Util.failureMessage("Invalid username");
             } else if (!Util.isValidEmail(email)) {
-                return failureMessage("Invalid email");
+                return Util.failureMessage("Invalid email");
             } else if (userRepository.findByUserName(userName).isPresent()) {
-                return failureMessage("Username " + userName + " already exist");
+                return Util.failureMessage("Username " + userName + " already exist");
             } else if (userRepository.findByEmail(email).isPresent()) {
-                return failureMessage("Email address " + email + " already in use");
+                return Util.failureMessage("Email address " + email + " already in use");
             } else {
                 int oneTimePassword = otpService.generateOTP(userName);
                 LOG.info("One time password: " + oneTimePassword);
@@ -96,7 +98,7 @@ public class UserManager implements IUserManager {
 
                 if (!isMessageSent) {
                     LOG.error("failure while sending email");
-                    return failureMessage("Failed");
+                    return Util.failureMessage("Failed");
                 } else {
                     User newUser = new User(firsName, lastName, userName, email, passwordEncoder.encode(String.valueOf(oneTimePassword)), isUsing2FA);
                     userRepository.save(newUser);
@@ -108,7 +110,7 @@ public class UserManager implements IUserManager {
                 }
             }
         } else {
-            return failureMessage("incorrect message type");
+            return Util.failureMessage("incorrect message type");
         }
     }
 
@@ -126,13 +128,13 @@ public class UserManager implements IUserManager {
                             .build();
                     return confirmation;
                 } else {
-                    return failureMessage("Invalid password.");
+                    return Util.failureMessage("Invalid password.");
                 }
             } catch (UserNotFoundException e) {
-                return failureMessage("Invalid username");
+                return Util.failureMessage("Invalid username");
             }
         } else {
-            return failureMessage("Incorrect message type");
+            return Util.failureMessage("Incorrect message type");
         }
     }
 
@@ -163,11 +165,6 @@ public class UserManager implements IUserManager {
         }
     }
 
-    BankMessage failureMessage(String msg) {
-        return BankMessage.newBuilder()
-                .setFailure(BankMessage.Failure.newBuilder().setMessage(msg).build())
-                .build();
-    }
 
     void generateQRCodeImage(String text, int width, int height, String filePath)
             throws WriterException, IOException {
@@ -187,5 +184,6 @@ public class UserManager implements IUserManager {
 //        wallet.setOwner(user);
 //        walletRepository.save(wallet);
     }
+
 
 }

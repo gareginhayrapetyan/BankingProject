@@ -49,7 +49,7 @@ public class EmailServiceImpl implements EmailService {
 
             FileSystemResource file = new FileSystemResource(new File(pathToAttachment));
 
-            helper.addAttachment("", file);
+            helper.addAttachment("QR", file);
 
             emailSender.send(message);
             return true;

@@ -10,6 +10,7 @@ message BankMessage {
         Login login = 3;
         Failure failure = 4;
         Confirmation confirmation = 5;
+        WithdrawalMsg withdrawalMsg = 6;
     }
 
     message Registration {
@@ -31,5 +32,13 @@ message BankMessage {
 
     message Confirmation {
         optional string message = 1;
+    }
+
+    message WithdrawalMsg {
+        optional string amountWithdrawn = 1;
+        optional string amountSent = 2;
+        optional string networkFee = 3;
+        optional string blockIOFee = 4;
+        optional string transactionID = 5;
     }
 }
