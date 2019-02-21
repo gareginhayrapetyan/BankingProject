@@ -11,7 +11,9 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
+    @Column(nullable = false)
     private Timestamp date;
+    @Column(nullable = false)
     private BigDecimal transactionAmount;
     private String transactionDescription;
 
@@ -57,15 +59,15 @@ public class Transaction {
         this.transactionDescription = transactionDescription;
     }
 
-    public Wallet getSenderAddress() {
+    public Wallet getSenderWallet() {
         return senderWallet;
     }
 
-    public void setSenderAddress(Wallet senderWallet) {
+    public void setSenderWallet(Wallet senderWallet) {
         this.senderWallet = senderWallet;
     }
 
-    public Wallet getReceiverWallet(Wallet wallet) {
+    public Wallet getReceiverWallet() {
         return receiverWallet;
     }
 

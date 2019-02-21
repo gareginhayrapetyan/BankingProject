@@ -11,6 +11,5 @@ import java.util.Set;
 @Repository
 public interface WalletRepository extends CrudRepository<Wallet, Long> {
     Set<Wallet> getWalletByOwner(User owner);
-
     Optional<Wallet> getWalletByAddress(String address);
 }

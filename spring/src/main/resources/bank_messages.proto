@@ -11,6 +11,8 @@ message BankMessage {
         Failure failure = 4;
         Confirmation confirmation = 5;
         WithdrawalMsg withdrawalMsg = 6;
+        ReceivedTransactionMsg receivedTransactionMsg = 7;
+        SentTransactionMsg sentTransactionMsg = 8;
     }
 
     message Registration {
@@ -40,5 +42,19 @@ message BankMessage {
         optional string networkFee = 3;
         optional string blockIOFee = 4;
         optional string transactionID = 5;
+    }
+
+    message ReceivedTransactionMsg {
+        required string transactionID = 1;
+        required int64 time = 2;
+        required string amount = 3;
+        optional string senderAddress = 4;
+    }
+
+    message SentTransactionMsg {
+        required string transactionID = 1;
+        required int64 time = 2;
+        required string amount = 3;
+        required string receiverAddress = 4;
     }
 }

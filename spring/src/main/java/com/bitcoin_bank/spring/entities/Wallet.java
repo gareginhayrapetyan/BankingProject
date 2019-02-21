@@ -17,7 +17,7 @@ public class Wallet {
     private BigDecimal currentBalance;
 
     @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "owner_id")
+    @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
 
     public Wallet() {

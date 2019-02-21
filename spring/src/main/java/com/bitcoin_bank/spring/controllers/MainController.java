@@ -4,16 +4,18 @@ import aca.proto.BankMessage;
 import com.bitcoin_bank.spring.entities.User;
 import com.bitcoin_bank.spring.entities.Wallet;
 import com.bitcoin_bank.spring.exception.UserNotFoundException;
+import com.bitcoin_bank.spring.exception.WalletNotFoundException;
 import com.bitcoin_bank.spring.interfaces.ITransactionManager;
 import com.bitcoin_bank.spring.interfaces.IUserManager;
-import com.bitcoin_bank.spring.repositories.UserRepository;
 import io.block.api.utils.BlockIOException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.util.Set;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 @Controller
 @RequestMapping(path = "/")
@@ -22,7 +24,7 @@ public class MainController {
     IUserManager userManager;
 
     @Autowired
-    ITransactionManager transactionManager;
+    ITransactionManager transactionsManager;
 
     @PostMapping(path = "/createwallet")
     public @ResponseBody
@@ -50,7 +52,7 @@ public class MainController {
                 @RequestParam String receiverAddress,
                 @RequestParam String transactionAmount) {
 
-        BankMessage response = transactionManager.verifyFundsSending(senderAddress, receiverAddress, transactionAmount);
+        BankMessage response = transactionsManager.verifyFundsSending(senderAddress, receiverAddress, transactionAmount);
         if (response.hasConfirmation()) {
             return response.getConfirmation().getMessage();
         } else if (response.hasFailure()) {
@@ -65,7 +67,7 @@ public class MainController {
     String sendReq(@RequestParam String walletAddress,
                    @RequestParam String requestAmount,
                    @RequestParam String email) {
-        BankMessage response = transactionManager.sendRequest(walletAddress, new BigDecimal(requestAmount), email);
+        BankMessage response = transactionsManager.sendRequest(walletAddress, new BigDecimal(requestAmount), email);
         if (response.hasConfirmation()) {
             return response.getConfirmation().getMessage();
         } else if (response.hasFailure()) {
@@ -75,27 +77,72 @@ public class MainController {
         }
     }
 
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @GetMapping(path = "/add")
+    @GetMapping(path = "/getReceivedTransactionsHistory")
     public @ResponseBody
-    String addNewUser(@RequestParam String name, @RequestParam String email) {
-        User user = new User();
-        user.setUserName(name);
-        user.setEmail(email);
-        userRepository.save(user);
-
-        return "Saved";
+    String getReceivedTransactionsHistory(@RequestParam String walletAddress) {
+        try {
+            List<BankMessage.ReceivedTransactionMsg> receivedTransactionMsgs = transactionsManager.getReceivedTransactionsHistory(walletAddress);
+            StringBuilder response = new StringBuilder();
+            for (BankMessage.ReceivedTransactionMsg msg : receivedTransactionMsgs) {
+                response.append(msg.getTransactionID())
+                        .append(": amount: ").append(msg.getAmount())
+                        .append(", sender: ").append(msg.getSenderAddress())
+                        .append(", time: ").append(msg.getTime()).append("\\n");
+            }
+            return response.toString();
+        } catch (BlockIOException e) {
+            return "failed";
+        }
     }
 
-    @GetMapping(path = "/all")
+    @GetMapping(path = "/getTransactionsSent")
     public @ResponseBody
-    Iterable<User> getAllUsers() {
-        return userRepository.findAll();
+    String getTransactionsSent(@RequestParam String walletAddress) {
+        try {
+            List<BankMessage.SentTransactionMsg> sentTransactionMsgs = transactionsManager.getTransactionsSentHistory(walletAddress);
+            StringBuilder response = new StringBuilder();
+            for (BankMessage.SentTransactionMsg msg : sentTransactionMsgs) {
+                response.append(msg.getTransactionID())
+                        .append(": amount: ").append(msg.getAmount())
+                        .append(", receiver: ").append(msg.getReceiverAddress())
+                        .append(", time: ").append(msg.getTime());
+            }
+            return response.toString();
+        } catch (WalletNotFoundException e) {
+            return "failed " + e.getMessage();
+        }
     }
 
+    @GetMapping(path = "/getAllTransactions")
+    public @ResponseBody
+    String getAllTransactions(@RequestParam String walletAddress) {
+        try {
+            List<BankMessage> transactionsMsgs = transactionsManager.getAllTransactions(walletAddress);
+            StringBuilder response = new StringBuilder();
+            for (BankMessage msg : transactionsMsgs) {
 
+                if (msg.hasReceivedTransactionMsg()) {
+                    DateFormat simple = new SimpleDateFormat("dd MMM yyyy HH:mm:ss:SSS Z");
+                    Date result = new Date(msg.getReceivedTransactionMsg().getTime());
+                    String timeString = simple.format(result);
+                    response.append(msg.getReceivedTransactionMsg().getTransactionID())
+                            .append(". time: ").append(timeString)
+                            .append(" amount: +").append(msg.getReceivedTransactionMsg().getAmount())
+                            .append(" sender : ").append(msg.getReceivedTransactionMsg().getSenderAddress()).append("\n");
+                } else {
+                    DateFormat simple = new SimpleDateFormat("dd MMM yyyy HH:mm:ss:SSS Z");
+                    Date result = new Date(msg.getSentTransactionMsg().getTime());
+                    String timeString = simple.format(result);
+                    response.append(msg.getSentTransactionMsg().getTransactionID())
+                            .append(". time: ").append(timeString)
+                            .append(" amount: -").append(msg.getSentTransactionMsg().getAmount())
+                            .append(" receiver: ").append(msg.getSentTransactionMsg().getReceiverAddress()).append("\n");
+                }
 
+            }
+            return response.toString();
+        } catch (WalletNotFoundException e) {
+            return "failed " + e.getMessage();
+        }
+    }
 }

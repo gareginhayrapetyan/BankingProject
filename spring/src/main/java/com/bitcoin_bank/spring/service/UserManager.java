@@ -1,9 +1,7 @@
 package com.bitcoin_bank.spring.service;
 
 import com.bitcoin_bank.spring.entities.User;
-import com.bitcoin_bank.spring.entities.Wallet;
 import com.bitcoin_bank.spring.exception.UserNotFoundException;
-import com.bitcoin_bank.spring.exception.WalletNotFoundException;
 import com.bitcoin_bank.spring.interfaces.IUserManager;
 import com.bitcoin_bank.spring.repositories.UserRepository;
 import com.bitcoin_bank.spring.repositories.WalletRepository;
@@ -13,11 +11,8 @@ import com.google.zxing.WriterException;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
-import com.mysql.cj.exceptions.UnableToConnectException;
 import io.block.api.BlockIO;
-import io.block.api.model.AddressBalances;
 import io.block.api.model.AddressByLabel;
-import io.block.api.model.NewAddress;
 import io.block.api.utils.BlockIOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,10 +26,8 @@ import javax.transaction.Transactional;
 import aca.proto.BankMessage;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.math.BigDecimal;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.Optional;
