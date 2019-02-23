@@ -37,11 +37,14 @@ message BankMessage {
     }
 
     message WithdrawalMsg {
-        optional string amountWithdrawn = 1;
-        optional string amountSent = 2;
-        optional string networkFee = 3;
-        optional string blockIOFee = 4;
-        optional string transactionID = 5;
+        required int64 time = 1;
+        required string senderAddress = 2;
+        required string receiverAddress = 3;
+        optional string amountWithdrawn = 4;
+        required string amountSent = 5;
+        optional string networkFee = 6;
+        optional string blockIOFee = 7;
+        optional string transactionID = 8;
     }
 
     message ReceivedTransactionMsg {

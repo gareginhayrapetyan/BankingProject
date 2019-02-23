@@ -14,6 +14,9 @@ public class Wallet {
     @Column(unique = true, nullable = false)
     private String address;
 
+    @Column(unique = true, nullable = false)
+    private String label;
+
     private BigDecimal currentBalance;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -22,11 +25,6 @@ public class Wallet {
 
     public Wallet() {
         super();
-    }
-
-    public Wallet(String currentAddress, BigDecimal currentBalance) {
-        this.address = currentAddress;
-        this.currentBalance = currentBalance;
     }
 
     public Long getId() {
@@ -51,6 +49,14 @@ public class Wallet {
 
     public void setCurrentBalance(BigDecimal currentBalance) {
         this.currentBalance = currentBalance;
+    }
+
+    public String getLabel() {
+        return label;
+    }
+
+    public void setLabel(String label) {
+        this.label = label;
     }
 
     public User getOwner() {

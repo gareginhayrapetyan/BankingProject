@@ -37,12 +37,12 @@ public class MainController {
             StringBuilder str = new StringBuilder();
             str.append("your addresses: ");
             Set<Wallet> wallets = user.getWallets();
-            wallets.forEach(wallet -> str.append(wallet.getCurrentAddress()));
+            wallets.forEach(wallet -> str.append(wallet.getCurrentAddress()).append("\n"));
             return str.toString();
         } catch (UserNotFoundException e) {
             return "Invalid username or password";
         } catch (BlockIOException e) {
-            return "Error while generating new address";
+            return "Error while generating new address" + e.getMessage();
         }
     }
 
@@ -51,7 +51,6 @@ public class MainController {
     String send(@RequestParam String senderAddress,
                 @RequestParam String receiverAddress,
                 @RequestParam String transactionAmount) {
-
         BankMessage response = transactionsManager.verifyFundsSending(senderAddress, receiverAddress, transactionAmount);
         if (response.hasConfirmation()) {
             return response.getConfirmation().getMessage();
@@ -102,10 +101,13 @@ public class MainController {
             List<BankMessage.SentTransactionMsg> sentTransactionMsgs = transactionsManager.getTransactionsSentHistory(walletAddress);
             StringBuilder response = new StringBuilder();
             for (BankMessage.SentTransactionMsg msg : sentTransactionMsgs) {
+                DateFormat simple = new SimpleDateFormat("dd MMM yyyy HH:mm:ss:SSS Z");
+                Date result = new Date(msg.getTime());
+                String timeString = simple.format(result);
                 response.append(msg.getTransactionID())
                         .append(": amount: ").append(msg.getAmount())
                         .append(", receiver: ").append(msg.getReceiverAddress())
-                        .append(", time: ").append(msg.getTime());
+                        .append(", time: ").append(timeString).append("\n");
             }
             return response.toString();
         } catch (WalletNotFoundException e) {

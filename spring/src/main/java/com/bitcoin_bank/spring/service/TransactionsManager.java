@@ -10,22 +10,24 @@ import com.bitcoin_bank.spring.repositories.WalletRepository;
 import com.bitcoin_bank.util.Util;
 import com.google.zxing.WriterException;
 import io.block.api.BlockIO;
+import io.block.api.model.Address;
+import io.block.api.model.AddressByLabel;
 import io.block.api.model.TransactionReceived;
 import io.block.api.model.TransactionsReceived;
 import io.block.api.utils.BlockIOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Properties;
 
 @Service
 public final class TransactionsManager implements ITransactionManager {
@@ -42,17 +44,13 @@ public final class TransactionsManager implements ITransactionManager {
 
     @Autowired
     EmailServiceImpl emailService;
+    private String apiKey;
+
     private BlockIO blockIO;
 
-    public TransactionsManager() {
-        Properties properties = new Properties();
-        try {
-            InputStream inputStream = new FileInputStream("C:\\Users\\Venera\\IdeaProjects\\BankingProjectV1\\spring\\src\\main\\resources\\application.properties");
-            properties.load(inputStream);
-            this.blockIO = new BlockIO(properties.getProperty("api-key"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public TransactionsManager(@Value("${api-key}") String apiKey) {
+        this.apiKey = apiKey;
+        this.blockIO = new BlockIO(apiKey);
     }
 
 
@@ -60,11 +58,28 @@ public final class TransactionsManager implements ITransactionManager {
     public BankMessage verifyFundsSending(String senderAddress, String receiverAddress, String transactionAmount) {
         try {
             Wallet senderWallet = getWalletByAddress(senderAddress);
+            try {
+                AddressByLabel address = blockIO.getAddressByLabel(senderWallet.getLabel());
+
+                senderWallet.setCurrentBalance(new BigDecimal(address.availableBalance));
+                walletRepository.save(senderWallet);
+            } catch (BlockIOException e) {
+                e.printStackTrace();
+            }
             Wallet receiverWallet = getWalletByAddress(receiverAddress);
             BigDecimal amount = new BigDecimal(transactionAmount);
             if (isFundsSufficient(senderWallet, amount)) {
-                bitcoinSenderService.withdrawFromWalletToWallet(senderAddress, receiverAddress, amount);
-                return Util.confirmationMessage("Success");
+                BankMessage msg = bitcoinSenderService.withdrawFromWalletToWallet(senderAddress, receiverAddress, amount);
+                if (msg.hasFailure()) {
+                    return msg;
+                }
+
+                saveTransaction(msg.getWithdrawalMsg().getSenderAddress(),
+                        msg.getWithdrawalMsg().getReceiverAddress(),
+                        new BigDecimal(msg.getWithdrawalMsg().getAmountSent()),
+                        new Timestamp(msg.getWithdrawalMsg().getTime()));
+
+                return Util.confirmationMessage("Success " + msg.getWithdrawalMsg().getAmountSent() + " fee: " + msg.getWithdrawalMsg().getBlockIOFee());
             } else {
                 return Util.failureMessage("InsufficientFunds in wallet: " + senderAddress);
             }
@@ -112,14 +127,6 @@ public final class TransactionsManager implements ITransactionManager {
     public List<BankMessage.SentTransactionMsg> getTransactionsSentHistory(String senderAddress) throws WalletNotFoundException {
         Optional<Wallet> senderWallet = walletRepository.getWalletByAddress(senderAddress);
         List<BankMessage.SentTransactionMsg> sentTransactionMsgs = new ArrayList<>();
-
-//
-//        Transaction transactionTest = new Transaction();
-//        transactionTest.setDate(new Timestamp(System.currentTimeMillis()));
-//        transactionTest.setReceiverWallet(senderWallet.get());
-//        transactionTest.setSenderWallet(senderWallet.get());
-//        transactionTest.setTransactionAmount(new BigDecimal(0.1));
-//        transactionRepository.save(transactionTest);
 
         if (senderWallet.isPresent()) {
             List<Transaction> transactionsSent = transactionRepository.getBySenderWallet(senderWallet.get());
@@ -169,21 +176,33 @@ public final class TransactionsManager implements ITransactionManager {
         }
     }
 
-    private Wallet getWalletByAddress(String address) throws WalletNotFoundException {
+    Wallet getWalletByAddress(String address) throws WalletNotFoundException {
         Optional<Wallet> wallet = walletRepository.getWalletByAddress(address);
 
         if (wallet.isPresent()) {
             return wallet.get();
         } else {
-            throw new WalletNotFoundException("invalid address");
+            throw new WalletNotFoundException("invalid address: " + address);
         }
     }
 
     private boolean isFundsSufficient(Wallet senderWallet, BigDecimal amount) {
-        if (senderWallet.getCurrentBalance().compareTo(amount) < 0) {
-            return false;
-        } else {
-            return true;
+        return senderWallet.getCurrentBalance().compareTo(amount) >= 0;
+    }
+
+
+    private void saveTransaction(String fromAddress, String toAddress, BigDecimal amount, Timestamp time) throws WalletNotFoundException {
+        try {
+            Wallet senderWallet = getWalletByAddress(fromAddress);
+            Wallet receiverWallet = getWalletByAddress(toAddress);
+            Transaction transaction = new Transaction();
+            transaction.setDate(time);
+            transaction.setSenderWallet(senderWallet);
+            transaction.setReceiverWallet(receiverWallet);
+            transaction.setTransactionAmount(amount);
+            transactionRepository.save(transaction);
+        } catch (WalletNotFoundException e) {
+            throw new WalletNotFoundException("Wallet not found. " + e.getMessage());
         }
     }
 }
