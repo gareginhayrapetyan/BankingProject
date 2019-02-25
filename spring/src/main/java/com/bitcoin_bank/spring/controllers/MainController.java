@@ -83,14 +83,18 @@ public class MainController {
             List<BankMessage.ReceivedTransactionMsg> receivedTransactionMsgs = transactionsManager.getReceivedTransactionsHistory(walletAddress);
             StringBuilder response = new StringBuilder();
             for (BankMessage.ReceivedTransactionMsg msg : receivedTransactionMsgs) {
+                DateFormat simple = new SimpleDateFormat("dd MMM yyyy HH:mm:ss:SSS Z");
+                Date result = new Date(msg.getTime());
+                String timeString = simple.format(result);
                 response.append(msg.getTransactionID())
                         .append(": amount: ").append(msg.getAmount())
+                        .append(", network fee: ").append(msg.getNetworkFee())
                         .append(", sender: ").append(msg.getSenderAddress())
-                        .append(", time: ").append(msg.getTime()).append("\\n");
+                        .append(", time: ").append(timeString).append("\n");
             }
             return response.toString();
-        } catch (BlockIOException e) {
-            return "failed";
+        } catch (WalletNotFoundException e) {
+            return "failed: " + e.getMessage();
         }
     }
 
@@ -106,6 +110,7 @@ public class MainController {
                 String timeString = simple.format(result);
                 response.append(msg.getTransactionID())
                         .append(": amount: ").append(msg.getAmount())
+                        .append(", network fee: ").append(msg.getNetworkFee())
                         .append(", receiver: ").append(msg.getReceiverAddress())
                         .append(", time: ").append(timeString).append("\n");
             }

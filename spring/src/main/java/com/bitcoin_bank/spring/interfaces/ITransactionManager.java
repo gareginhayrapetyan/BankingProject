@@ -11,7 +11,7 @@ public interface ITransactionManager {
     BankMessage verifyFundsSending(String senderAddress, String receiverAddress, String transactionAmount);
     BankMessage sendRequest(String walletAddress, BigDecimal requestAmount, String email);
 
-    List<BankMessage.ReceivedTransactionMsg> getReceivedTransactionsHistory(String receiverAddress) throws BlockIOException;
+    List<BankMessage.ReceivedTransactionMsg> getReceivedTransactionsHistory(String receiverAddress) throws WalletNotFoundException;
 
     List<BankMessage.SentTransactionMsg> getTransactionsSentHistory(String senderAddress) throws WalletNotFoundException;
 

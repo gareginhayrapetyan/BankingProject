@@ -66,7 +66,7 @@ public class UserManager implements IUserManager {
 
 
     @Autowired
-    public UserManager(@Value("${api-key}") String apiKey) {
+    public UserManager(@Value("${api-key") String apiKey) {
         this.apiKey = apiKey;
         this.blockIO = new BlockIO(apiKey);
         this.passwordEncoder = new BCryptPasswordEncoder();
@@ -184,6 +184,4 @@ public class UserManager implements IUserManager {
         wallet.setOwner(user);
         walletRepository.save(wallet);
     }
-
-
 }

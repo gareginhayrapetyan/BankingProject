@@ -48,7 +48,7 @@ public final class TransactionsManager implements ITransactionManager {
 
     private BlockIO blockIO;
 
-    public TransactionsManager(@Value("${api-key}") String apiKey) {
+    public TransactionsManager(@Value("${api-key") String apiKey) {
         this.apiKey = apiKey;
         this.blockIO = new BlockIO(apiKey);
     }
@@ -58,16 +58,9 @@ public final class TransactionsManager implements ITransactionManager {
     public BankMessage verifyFundsSending(String senderAddress, String receiverAddress, String transactionAmount) {
         try {
             Wallet senderWallet = getWalletByAddress(senderAddress);
-            try {
-                AddressByLabel address = blockIO.getAddressByLabel(senderWallet.getLabel());
-
-                senderWallet.setCurrentBalance(new BigDecimal(address.availableBalance));
-                walletRepository.save(senderWallet);
-            } catch (BlockIOException e) {
-                e.printStackTrace();
-            }
             Wallet receiverWallet = getWalletByAddress(receiverAddress);
             BigDecimal amount = new BigDecimal(transactionAmount);
+
             if (isFundsSufficient(senderWallet, amount)) {
                 BankMessage msg = bitcoinSenderService.withdrawFromWalletToWallet(senderAddress, receiverAddress, amount);
                 if (msg.hasFailure()) {
@@ -77,9 +70,12 @@ public final class TransactionsManager implements ITransactionManager {
                 saveTransaction(msg.getWithdrawalMsg().getSenderAddress(),
                         msg.getWithdrawalMsg().getReceiverAddress(),
                         new BigDecimal(msg.getWithdrawalMsg().getAmountSent()),
+                        new BigDecimal(msg.getWithdrawalMsg().getNetworkFee()),
                         new Timestamp(msg.getWithdrawalMsg().getTime()));
 
-                return Util.confirmationMessage("Success " + msg.getWithdrawalMsg().getAmountSent() + " fee: " + msg.getWithdrawalMsg().getBlockIOFee());
+                updateWallets(senderWallet, receiverWallet, msg.getWithdrawalMsg());
+
+                return Util.confirmationMessage("Success " + msg.getWithdrawalMsg().getAmountSent() + " fee: " + msg.getWithdrawalMsg().getNetworkFee());
             } else {
                 return Util.failureMessage("InsufficientFunds in wallet: " + senderAddress);
             }
@@ -106,22 +102,43 @@ public final class TransactionsManager implements ITransactionManager {
         }
     }
 
-    public List<BankMessage.ReceivedTransactionMsg> getReceivedTransactionsHistory(String receiverAddress) throws BlockIOException {
-        String[] addresses = {receiverAddress};
+//    public List<BankMessage.ReceivedTransactionMsg> getReceivedTransactionsHistory(String receiverAddress) throws BlockIOException {
+//        String[] addresses = {receiverAddress};
+//        List<BankMessage.ReceivedTransactionMsg> receivedTransactionMsgs = new ArrayList<>();
+//
+//        TransactionsReceived transactionsReceived = blockIO.getTransactionsReceivedByAddress(addresses, null);
+//        List<TransactionReceived> transactionReceivedList = transactionsReceived.txs;
+//        for (TransactionReceived transactionReceived : transactionReceivedList) {
+//            BankMessage.ReceivedTransactionMsg msg = BankMessage.ReceivedTransactionMsg.newBuilder()
+//                    .setTransactionID(transactionReceived.txid).setTime(transactionReceived.time)
+//                    .setAmount(transactionReceived.amountsReceived.get(0).amount)
+//                    .setSenderAddress(transactionReceived.senders.get(0))
+//                    .build();
+//            receivedTransactionMsgs.add(msg);
+//        }
+//
+//        return receivedTransactionMsgs;
+//    }
+
+    public List<BankMessage.ReceivedTransactionMsg> getReceivedTransactionsHistory(String receiverAddress) throws WalletNotFoundException {
+        Optional<Wallet> receiverWallet = walletRepository.getWalletByAddress(receiverAddress);
         List<BankMessage.ReceivedTransactionMsg> receivedTransactionMsgs = new ArrayList<>();
 
-        TransactionsReceived transactionsReceived = blockIO.getTransactionsReceivedByAddress(addresses, null);
-        List<TransactionReceived> transactionReceivedList = transactionsReceived.txs;
-        for (TransactionReceived transactionReceived : transactionReceivedList) {
-            BankMessage.ReceivedTransactionMsg msg = BankMessage.ReceivedTransactionMsg.newBuilder()
-                    .setTransactionID(transactionReceived.txid).setTime(transactionReceived.time)
-                    .setAmount(transactionReceived.amountsReceived.get(0).amount)
-                    .setSenderAddress(transactionReceived.senders.get(0))
-                    .build();
-            receivedTransactionMsgs.add(msg);
+        if (receiverWallet.isPresent()) {
+            List<Transaction> transactionsReceived = transactionRepository.getByReceiverWallet(receiverWallet.get());
+            for (Transaction transaction : transactionsReceived) {
+                BankMessage.ReceivedTransactionMsg msg = BankMessage.ReceivedTransactionMsg.newBuilder()
+                        .setTransactionID(transaction.getId().toString())
+                        .setTime(transaction.getDate().getTime())
+                        .setAmount(transaction.getTransactionAmount().toString())
+                        .setNetworkFee(transaction.getTransactionFee().toString())
+                        .setSenderAddress(transaction.getReceiverWallet().getCurrentAddress()).build();
+                receivedTransactionMsgs.add(msg);
+            }
+            return receivedTransactionMsgs;
+        } else {
+            throw new WalletNotFoundException("Wallet not found: Invalid address");
         }
-
-        return receivedTransactionMsgs;
     }
 
     public List<BankMessage.SentTransactionMsg> getTransactionsSentHistory(String senderAddress) throws WalletNotFoundException {
@@ -135,6 +152,7 @@ public final class TransactionsManager implements ITransactionManager {
                         .setTransactionID(transaction.getId().toString())
                         .setTime(transaction.getDate().getTime())
                         .setAmount(transaction.getTransactionAmount().toString())
+                        .setNetworkFee(transaction.getTransactionFee().toString())
                         .setReceiverAddress(transaction.getReceiverWallet().getCurrentAddress()).build();
                 sentTransactionMsgs.add(msg);
             }
@@ -142,7 +160,6 @@ public final class TransactionsManager implements ITransactionManager {
         } else {
             throw new WalletNotFoundException("Invalid address");
         }
-
     }
 
     public List<BankMessage> getAllTransactions(String address) throws WalletNotFoundException {
@@ -191,7 +208,7 @@ public final class TransactionsManager implements ITransactionManager {
     }
 
 
-    private void saveTransaction(String fromAddress, String toAddress, BigDecimal amount, Timestamp time) throws WalletNotFoundException {
+    private void saveTransaction(String fromAddress, String toAddress, BigDecimal amount, BigDecimal transactionFee, Timestamp time) throws WalletNotFoundException {
         try {
             Wallet senderWallet = getWalletByAddress(fromAddress);
             Wallet receiverWallet = getWalletByAddress(toAddress);
@@ -200,9 +217,19 @@ public final class TransactionsManager implements ITransactionManager {
             transaction.setSenderWallet(senderWallet);
             transaction.setReceiverWallet(receiverWallet);
             transaction.setTransactionAmount(amount);
+            transaction.setTransactionFee(transactionFee);
             transactionRepository.save(transaction);
         } catch (WalletNotFoundException e) {
             throw new WalletNotFoundException("Wallet not found. " + e.getMessage());
         }
+    }
+
+    private void updateWallets(Wallet senderWallet, Wallet receiverWallet, BankMessage.WithdrawalMsg msg) {
+        BigDecimal amountWithdrawn = new BigDecimal(msg.getAmountWithdrawn());
+        BigDecimal amountSent = new BigDecimal(msg.getAmountSent());
+        senderWallet.setCurrentBalance(senderWallet.getCurrentBalance().subtract(amountWithdrawn));
+        receiverWallet.setCurrentBalance(receiverWallet.getCurrentBalance().add(amountSent));
+        walletRepository.save(senderWallet);
+        walletRepository.save(receiverWallet);
     }
 }

@@ -51,13 +51,15 @@ message BankMessage {
         required string transactionID = 1;
         required int64 time = 2;
         required string amount = 3;
-        optional string senderAddress = 4;
+        required string networkFee = 4;
+        optional string senderAddress = 5;
     }
 
     message SentTransactionMsg {
         required string transactionID = 1;
         required int64 time = 2;
         required string amount = 3;
-        required string receiverAddress = 4;
+        required string networkFee = 4;
+        required string receiverAddress = 5;
     }
 }

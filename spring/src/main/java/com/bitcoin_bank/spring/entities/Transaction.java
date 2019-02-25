@@ -16,6 +16,8 @@ public class Transaction {
     @Column(nullable = false)
     private BigDecimal transactionAmount;
     private String transactionDescription;
+    @Column(nullable = false)
+    private BigDecimal transactionFee;
 
     @ManyToOne
     private Wallet senderWallet;
@@ -57,6 +59,14 @@ public class Transaction {
 
     public void setTransactionDescription(String transactionDescription) {
         this.transactionDescription = transactionDescription;
+    }
+
+    public BigDecimal getTransactionFee() {
+        return transactionFee;
+    }
+
+    public void setTransactionFee(BigDecimal transactionFee) {
+        this.transactionFee = transactionFee;
     }
 
     public Wallet getSenderWallet() {
