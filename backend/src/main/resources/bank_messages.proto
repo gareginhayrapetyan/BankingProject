@@ -1,0 +1,65 @@
+syntax = "proto2";
+option java_multiple_files = true;
+
+package aca.proto;
+
+message BankMessage {
+
+    oneof msg {
+        Registration registration = 2;
+        Login login = 3;
+        Failure failure = 4;
+        Confirmation confirmation = 5;
+        WithdrawalMsg withdrawalMsg = 6;
+        ReceivedTransactionMsg receivedTransactionMsg = 7;
+        SentTransactionMsg sentTransactionMsg = 8;
+    }
+
+    message Registration {
+        required string firstName = 1;
+        required string lastName = 2;
+        required string username = 3;
+        required string email = 4;
+        required bool isUsing2FA = 5;
+    }
+
+    message Login {
+        required string username = 1;
+        required string password = 2;
+    }
+
+    message Failure {
+        optional string message = 1;
+    }
+
+    message Confirmation {
+        optional string message = 1;
+    }
+
+    message WithdrawalMsg {
+        required int64 time = 1;
+        required string senderAddress = 2;
+        required string receiverAddress = 3;
+        optional string amountWithdrawn = 4;
+        required string amountSent = 5;
+        optional string networkFee = 6;
+        optional string blockIOFee = 7;
+        optional string transactionID = 8;
+    }
+
+    message ReceivedTransactionMsg {
+        required string transactionID = 1;
+        required int64 time = 2;
+        required string amount = 3;
+        required string networkFee = 4;
+        optional string senderAddress = 5;
+    }
+
+    message SentTransactionMsg {
+        required string transactionID = 1;
+        required int64 time = 2;
+        required string amount = 3;
+        required string networkFee = 4;
+        required string receiverAddress = 5;
+    }
+}
